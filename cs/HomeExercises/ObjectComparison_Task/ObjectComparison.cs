@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using NUnit.Framework;
 
-namespace HomeExercises
+namespace HomeExercises.ObjectComparison_Task
 {
 	public class ObjectComparison
 	{
@@ -16,15 +16,10 @@ namespace HomeExercises
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
 			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
-
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			actualTsar.Should().BeEquivalentTo(expectedTsar,
+				options => options.AllowingInfiniteRecursion().Excluding(memberInfo =>
+					memberInfo.SelectedMemberInfo.DeclaringType == typeof(Person) &&
+					memberInfo.SelectedMemberInfo.Name == nameof(Person.Id)));
 		}
 
 		[Test]
@@ -37,6 +32,9 @@ namespace HomeExercises
 
 			// Какие недостатки у такого подхода? 
 			Assert.True(AreEqual(actualTsar, expectedTsar));
+			// При падении данного теста будет выведено сообщение: Expected: True, But was: False
+			// Это является крайне неинформативным, будет трудно понять, где произошла ошибка
+			// Если программист добавит новые поля в Person, то в тест придется вносить целый ряд изменений
 		}
 
 		private bool AreEqual(Person? actual, Person? expected)
@@ -49,35 +47,6 @@ namespace HomeExercises
 				&& actual.Height == expected.Height
 				&& actual.Weight == expected.Weight
 				&& AreEqual(actual.Parent, expected.Parent);
-		}
-	}
-
-	public class TsarRegistry
-	{
-		public static Person GetCurrentTsar()
-		{
-			return new Person(
-				"Ivan IV The Terrible", 54, 170, 70,
-				new Person("Vasili III of Russia", 28, 170, 60, null));
-		}
-	}
-
-	public class Person
-	{
-		public static int IdCounter = 0;
-		public int Age, Height, Weight;
-		public string Name;
-		public Person? Parent;
-		public int Id;
-
-		public Person(string name, int age, int height, int weight, Person? parent)
-		{
-			Id = IdCounter++;
-			Name = name;
-			Age = age;
-			Height = height;
-			Weight = weight;
-			Parent = parent;
 		}
 	}
 }
