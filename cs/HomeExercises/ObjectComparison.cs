@@ -28,6 +28,19 @@ namespace HomeExercises
 		}
 
 		[Test]
+		[Description("Отрефакторенный тест CheckCurrentTsar")]
+		public void GetCurrentTsar_CheckCurrentTsar_Correct()
+		{
+			var actualTsar = TsarRegistry.GetCurrentTsar();
+
+			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
+				new Person("Vasili III of Russia", 28, 170, 60, null));
+
+			actualTsar.Should().BeEquivalentTo(expectedTsar, options => options.
+				Excluding(x => x.SelectedMemberInfo.Name.Equals("Id") && x.SelectedMemberInfo.DeclaringType == typeof(Person)));
+		}
+		
+		[Test]
 		[Description("Альтернативное решение. Какие у него недостатки?")]
 		public void CheckCurrentTsar_WithCustomEquality()
 		{
@@ -51,6 +64,25 @@ namespace HomeExercises
 				&& AreEqual(actual.Parent, expected.Parent);
 		}
 	}
+
+	/*
+	1. В моём тесте больше информации, где именно, с какими данными произошла ошибка.
+		Вывод при ошибке:
+		• CheckCurrentTsar_WithCustomEquality()
+			Expected: True
+			But was:  False
+		• GetCurrentTsar_CheckCurrentTsar_Correct()
+			Expected member Parent.Height to be 170, but found 171.
+	2. При добавлении полей придётся лезть в  альтернативный тест. Если тестов, в которых создается экземпляр класса Person 100, 
+	то не завидую. В моём же тесте всё это возлагается на FluentAssertions.
+	3. В противовес можно сказать, что если мы добавили поле, которое не нужно сравнивать(как, к примеру, Id), то в моём тесте придётся 
+	вручную указывать это. Но такие уникальные поля скорее всего будут появляться максимально редко.
+	4. Хочу отметить, что метод AreEqual при такой реализации придётся запихивать и в другие тесты, где есть сравнение двух экземпляров 
+	класса Person. Лучше переопределить Equals + GetHashCode у класса Person.
+	5. Читеаемость моего теста лучше.
+	6. В альтернативном решении может возникнуть бесконечная рекурсия, если, к примеру, персона N будет являться своим же отцом.
+	Будет StackOverflowException.
+	*/
 
 	public class TsarRegistry
 	{
