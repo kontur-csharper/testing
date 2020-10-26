@@ -7,26 +7,91 @@ namespace HomeExercises
 {
 	public class NumberValidatorTests
 	{
-		[Test]
-		public void Test()
+		private NumberValidator defaultValidator;
+		private NumberValidator smallPrecValidator;
+		private NumberValidator onlyPositiveValidator;
+			
+		[SetUp]
+		public void Init()
 		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+			defaultValidator = new NumberValidator(17, 2);
+			smallPrecValidator = new NumberValidator(3, 2);
+			onlyPositiveValidator = new NumberValidator(17, 2, true);
+		}
+		
+		[Test]
+		public void Validation_ShouldFalse_WhenNotDigit() =>
+			defaultValidator.IsValidNumber("as.d")
+				.Should().BeFalse();
+		
+		[Test]
+		[TestCase(null)]
+		[TestCase("")]
+		public void Validation_ShouldFalse_WhenNullOrEmpty(string number) =>
+			defaultValidator.IsValidNumber(number)
+				.Should().BeFalse();
+		
+		[Test]
+		public void Validation_ShouldTrue_OnDifferentDigits() =>
+			defaultValidator.IsValidNumber("1234567890")
+				.Should().BeTrue();
+		
+		[Test]
+		[TestCase("0.000")]
+		[TestCase("00000")]
+		[TestCase("000.00")]
+		[TestCase("+0000")]
+		[TestCase("+00.00")]
+		public void Validation_ShouldFalse_WhenOutOfBounce(string number) =>
+			smallPrecValidator.IsValidNumber(number)
+				.Should().BeFalse();
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+		[Test]
+		public void OnlyPosValidation_ShouldFalse_WhenNegativeNumber() =>
+			onlyPositiveValidator.IsValidNumber("-0.0")
+				.Should().BeFalse();
+		
+		[Test]
+		[TestCase("0.0")]
+		[TestCase("+0.0")]
+		public void OnlyPosValidation_ShouldTrue_WhenPositiveNumber(string number) =>
+			onlyPositiveValidator.IsValidNumber(number)
+				.Should().BeTrue();
+		
+		[Test]
+		[TestCase("0.0")]
+		[TestCase("+0.0")]
+		[TestCase("-0.0")]
+		public void NotOnlyPosValidation_ShouldTrue_WhenAnySigns(string number) =>
+			defaultValidator.IsValidNumber(number)
+				.Should().BeTrue();
+
+		[Test]
+		[TestCase('.')]
+		[TestCase(',')]
+		public void Validation_ShouldTrue_WhenCorrectDecimalSeparator(char separator) =>
+			defaultValidator.IsValidNumber($"0{separator}0")
+				.Should().BeTrue();
+
+		[Test]
+		[TestCase('!')]
+		[TestCase(':')]
+		public void Validation_ShouldFalse_WhenIncorrectDecimalSeparator(char separator) =>
+			defaultValidator.IsValidNumber($"0{separator}0")
+				.Should().BeFalse();
+
+		[Test]
+		[TestCase(-1, 0, "precision must be a positive number")]
+		[TestCase(10, -1, "scale must be a non-negative number less or equal than precision")]
+		[TestCase(10, 11, "scale must be a non-negative number less or equal than precision")]
+		public void ValidatorCreation_ShouldThrowException_WhenIncorrectParameters(int precision,
+			int scale, string message)
+		{
+			Action makeIncorrectValidator = () =>
+				new NumberValidator(precision, scale);
+			makeIncorrectValidator.Should()
+				.Throw<ArgumentException>()
+				.WithMessage(message);
 		}
 	}
 
@@ -45,7 +110,8 @@ namespace HomeExercises
 			if (precision <= 0)
 				throw new ArgumentException("precision must be a positive number");
 			if (scale < 0 || scale >= precision)
-				throw new ArgumentException("precision must be a non-negative number less or equal than precision");
+				//Тут была ошибка в сообщении: "precision must be..."
+				throw new ArgumentException("scale must be a non-negative number less or equal than precision");
 			numberRegex = new Regex(@"^([+-]?)(\d+)([.,](\d+))?$", RegexOptions.IgnoreCase);
 		}
 
