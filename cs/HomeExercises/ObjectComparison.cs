@@ -5,26 +5,27 @@ namespace HomeExercises
 {
 	public class ObjectComparison
 	{
+		/*
+		 * Недостаток метода CheckCurrentTsar_WithCustomEquality() такой:
+		 * При добавлении новых полей, обязательно нужно прописывать новые проверки на равенство полей
+		 * В моем методе проверка по всем полям происходит автоматически
+		 * При довавление нового поля, которое не нужно учитывать, нужно всего лишь прописать дополнительный Excluding()
+		 * К тому же при падении теста в CheckCurrentTsar_WithCustomEquality() 
+		 * Нужно будет искать ошибку в трассировке стека
+		*/
 		[Test]
 		[Description("Проверка текущего царя")]
 		[Category("ToRefactor")]
 		public void CheckCurrentTsar()
 		{
 			var actualTsar = TsarRegistry.GetCurrentTsar();
-
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
-
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			actualTsar.Should().BeEquivalentTo(expectedTsar,
+				options => options.AllowingInfiniteRecursion()
+					.Excluding(x => x.SelectedMemberInfo.DeclaringType == typeof(Person) 
+					                && x.SelectedMemberInfo.Name == nameof(Person.Id)));
 		}
 
 		[Test]
@@ -49,35 +50,6 @@ namespace HomeExercises
 				&& actual.Height == expected.Height
 				&& actual.Weight == expected.Weight
 				&& AreEqual(actual.Parent, expected.Parent);
-		}
-	}
-
-	public class TsarRegistry
-	{
-		public static Person GetCurrentTsar()
-		{
-			return new Person(
-				"Ivan IV The Terrible", 54, 170, 70,
-				new Person("Vasili III of Russia", 28, 170, 60, null));
-		}
-	}
-
-	public class Person
-	{
-		public static int IdCounter = 0;
-		public int Age, Height, Weight;
-		public string Name;
-		public Person? Parent;
-		public int Id;
-
-		public Person(string name, int age, int height, int weight, Person? parent)
-		{
-			Id = IdCounter++;
-			Name = name;
-			Age = age;
-			Height = height;
-			Weight = weight;
-			Parent = parent;
 		}
 	}
 }
