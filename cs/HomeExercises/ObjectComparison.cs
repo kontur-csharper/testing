@@ -5,6 +5,18 @@ namespace HomeExercises
 {
 	public class ObjectComparison
 	{
+		/// <summary>
+		/// Альтернативное решение не даёт информации о том, какие данные были неверными.
+		/// Может вызвать переполнение стека вызовов.
+		/// При добавлении нового поля в классе Person нужно добавлять проверку в методе AreEqual.
+		///
+		/// FluentAssertions позволяет избавиться от вложенных вызовов методов.
+		/// Например: Assert.True(AreEqual(actualTsar, expectedTsar)).
+		/// Should() явно указывает на актуальное и ожидаемое значения.
+		/// Сообщение о неверном результате предоставляет полную информацию.
+		/// Обнаружение цикличных ссылок.
+		/// При добавлении нового поля нет необходимости вносить изменения в тест.
+		/// </summary>
 		[Test]
 		[Description("Проверка текущего царя")]
 		[Category("ToRefactor")]
@@ -15,16 +27,9 @@ namespace HomeExercises
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
-
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			var idFieldName = nameof(Person.Id);
+			actualTsar.Should().BeEquivalentTo(expectedTsar, options => options
+				.Excluding(info => info.SelectedMemberInfo.Name == idFieldName));
 		}
 
 		[Test]
