@@ -5,6 +5,7 @@ using NUnit.Framework;
 namespace Samples.AAA
 {
 	[TestFixture]
+	
 	public class Zip_Should
 	{
 		[Test]
@@ -14,7 +15,6 @@ namespace Samples.AAA
 			var arr2 = new[] { 2 };
 
 			var result = arr1.Zip(arr2, Tuple.Create);
-
 			CollectionAssert.AreEqual(new[] { Tuple.Create(1, 2) }, result);
 		}
 

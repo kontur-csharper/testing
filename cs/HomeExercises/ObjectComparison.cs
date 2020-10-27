@@ -1,10 +1,20 @@
-﻿using FluentAssertions;
+﻿using System.Linq;
+using FluentAssertions;
+using FluentAssertions.Equivalency;
 using NUnit.Framework;
 
 namespace HomeExercises
 {
 	public class ObjectComparison
 	{
+		
+		private static EquivalencyAssertionOptions<Person> ExcludingIdAndParent(EquivalencyAssertionOptions<Person> options)
+		{
+			return options
+				.Excluding(person => person.Id)
+				.Excluding(person => person.Parent);
+		}
+		
 		[Test]
 		[Description("Проверка текущего царя")]
 		[Category("ToRefactor")]
@@ -16,15 +26,18 @@ namespace HomeExercises
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
 			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
+			actualTsar.Name.Should().Be(expectedTsar.Name);
+			actualTsar.Age.Should().Be(expectedTsar.Age);
+			actualTsar.Height.Should().Be(expectedTsar.Height);
+			actualTsar.Weight.Should().Be(expectedTsar.Weight);
 
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			var actualParent = actualTsar.Parent!;
+			var expectedParent = expectedTsar.Parent!;
+
+			actualParent.Name.Should().Be(expectedParent.Name);
+			actualParent.Age.Should().Be(expectedParent.Age);
+			actualParent.Height.Should().Be(expectedParent.Height);
+			actualParent.Weight.Should().Be(expectedParent.Weight);
 		}
 
 		[Test]
@@ -35,20 +48,15 @@ namespace HomeExercises
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Какие недостатки у такого подхода? 
-			Assert.True(AreEqual(actualTsar, expectedTsar));
-		}
-
-		private bool AreEqual(Person? actual, Person? expected)
-		{
-			if (actual == expected) return true;
-			if (actual == null || expected == null) return false;
-			return
-				actual.Name == expected.Name
-				&& actual.Age == expected.Age
-				&& actual.Height == expected.Height
-				&& actual.Weight == expected.Weight
-				&& AreEqual(actual.Parent, expected.Parent);
+			actualTsar.Should().BeEquivalentTo(expectedTsar, ExcludingIdAndParent);
+			actualTsar.Parent.Should().BeEquivalentTo(expectedTsar.Parent, ExcludingIdAndParent);
+			
+			/* Почему это решение лучше:
+			 * 1) Легко расширяемо - нужно будет только дописывать новые свойства в expectedTsar
+			 * 2) Информативно при ошибке - дает информацию какие свойства отличаются
+			 * 3) Код стал более читаемым
+			 * 4) Тест продолжает корректно работать
+			 */
 		}
 	}
 
