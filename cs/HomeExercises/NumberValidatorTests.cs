@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using FluentAssertions;
 using NUnit.Framework;
 
 namespace HomeExercises
@@ -8,25 +7,78 @@ namespace HomeExercises
 	public class NumberValidatorTests
 	{
 		[Test]
-		public void Test()
+		public void NumberValidatorConstructorMultipleTest()
 		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+			Assert.Multiple(() =>
+			{
+				Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true),
+					"NumberValidatorConstructor_PrecisionLessThan0_ArgumentExceptionThrown");
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+				Assert.Throws<ArgumentException>(() => new NumberValidator(2, -1),
+					"NumberValidatorConstructor_ScaleLessThan0_ArgumentExceptionThrown");
+				Assert.Throws<ArgumentException>(() => new NumberValidator(2, 3, true),
+					"NumberValidatorConstructor_ScaleMoreThanPrecision_ArgumentExceptionThrown");
+
+				Assert.Throws<ArgumentException>(() => new NumberValidator(2, 2, true),
+					"NumberValidatorConstructor_ScaleEqualPrecision_ArgumentExceptionThrown");
+
+
+				Assert.DoesNotThrow(() => new NumberValidator(1, 0, true),
+					"NumberValidatorConstructor_OnlyPositiveNumbersScaleSet0_CreatedNumberValidator");
+				Assert.DoesNotThrow(() => new NumberValidator(1, 0),
+					"NumberValidatorConstructor_ScalesSet0_CreatedNumberValidator");
+			});
+		}
+
+		[Test]
+		public void NumberValidationMultiTest()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"),
+					"IsValidNumber_NumberWith3DigitsAndInsignificantSign_True");
+
+
+				var validator = new NumberValidator(17, 2, true);
+
+				Assert.IsFalse(validator.IsValidNumber(string.Empty), "IsValidNumber_EmptyString_False");
+				Assert.IsFalse(validator.IsValidNumber(null), "IsValidNumber_Null_False");
+				Assert.IsFalse(validator.IsValidNumber("     "), "IsValidNumber_Spaces_False");
+				Assert.True(validator.IsValidNumber("0"), "IsValidNumber_NumberWithoutFractionalPart_True");
+				Assert.IsFalse(validator.IsValidNumber("0.000"), "IsValidNumber_FractionalPartMoreThanScale_False");
+
+				Assert.IsTrue(validator.IsValidNumber("0.0"), "IsValidNumber_FractionalPartIs0_True");
+				Assert.IsTrue(validator.IsValidNumber("1"),
+					"IsValidNumber_PositiveIntegerWithOnlyPositiveValidator_True");
+				Assert.IsTrue(new NumberValidator(4, 1, false).IsValidNumber("1"),
+					"IsValidNumber_PositiveIntegerWhenValidatorNotOnlyPositive_True");
+				Assert.IsFalse(validator.IsValidNumber("-1"),
+					"IsValidNumber_NegativeIntegerWhenValidatorOnlyPositive_False");
+				Assert.IsFalse(validator.IsValidNumber(".1"), "IsValidNumber_BeginWithDot_False");
+				Assert.IsFalse(validator.IsValidNumber("1."),
+					"IsValidNumber_NumberWithDotButWithoutFractionalPart_False");
+				Assert.IsTrue(validator.IsValidNumber("1,2"), "IsValidNumber_NumberWithComma_True");
+				Assert.IsTrue(validator.IsValidNumber("౦౧౨"), "IsValidNumber_TeluguNumbers_True");
+				Assert.IsTrue(validator.IsValidNumber("๑๒๓"), "IsValidNumber_ThaiNumbers_True");
+				Assert.IsTrue(validator.IsValidNumber("٦٧"), "IsValidNumber_ArabicNumbers_True");
+				Assert.IsTrue(validator.IsValidNumber("१०"), "IsValidNumber_DevanagariNumbers_True");
+
+				validator = new NumberValidator(3, 2, true);
+
+
+				Assert.IsFalse(validator.IsValidNumber("+0.00"),
+					"IsValidNumber_DigitsAndSignLengthMoreThanPrecision_False");
+
+				Assert.IsFalse(validator.IsValidNumber("-0.00"),
+					"IsValidNumber_DigitsAndSignLengthMoreThanPrecision_False");
+
+				Assert.IsFalse(validator.IsValidNumber("00.00"), "IsValidNumber_InsignificantZerosWithDot_False");
+				Assert.IsFalse(validator.IsValidNumber("-a.sd"), "IsValidNumber_LettersWithSignAndDot_False");
+				Assert.IsFalse(validator.IsValidNumber("1.a"), "IsValidNumber_DigitWithDotAndLetter_False");
+				Assert.IsFalse(validator.IsValidNumber(" 1"), "IsValidNumber_NumberWithSpaceInBegin_False");
+				Assert.IsFalse(validator.IsValidNumber("1 "), "IsValidNumber_SpaceAfterNumber_False");
+				Assert.IsFalse(validator.IsValidNumber("-+1"), "IsValidNumber_PlusAndMinusBeforeNumber_False");
+			});
 		}
 	}
 
