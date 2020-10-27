@@ -7,26 +7,101 @@ namespace HomeExercises
 {
 	public class NumberValidatorTests
 	{
-		[Test]
-		public void Test()
+		[TestCase(-1, 2, true, "precision must be a positive number", TestName = "NegativePrecision")]
+		[TestCase(0, 2, true, "precision must be a positive number", TestName = "ZeroPrecision")]
+		[TestCase(1, -1, true, "scale must be a non-negative number less than precision", TestName = "NegativeScale")]
+		[TestCase(1, 2, true, "scale must be a non-negative number less than precision", TestName = "ScaleMoreThenPrecision")]
+		[TestCase(1, 1, true, "scale must be a non-negative number less than precision", TestName = "ScaleEqualPrecision")]
+		public void Creating_ThrowsArgumentException_OnWrongData(int precision, int scale, bool onlyPositive, string message)
 		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+			Action act = () => new NumberValidator(precision, scale, onlyPositive);
+			act.Should().Throw<ArgumentException>()
+				.WithMessage(message);
+		}
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+		[TestCase("a", TestName = "OneLetter")]
+		[TestCase("-a", TestName = "NegativeOneLetter")]
+		[TestCase("a.", TestName = "OneLetterBeforeDot")]
+		[TestCase(".a", TestName = "OneLetterAfterDot")]
+		[TestCase("a.a", TestName = "TwoLettersWithDot")]
+		[TestCase("a,", TestName = "OneLetterBeforeComma")]
+		[TestCase(",a", TestName = "OneLetterAfterComma")]
+		[TestCase("a,a", TestName = "TwoLettersWithComma")]
+		[TestCase(",", TestName = "Comma")]
+		[TestCase(".", TestName = "Dot")]
+		[TestCase("", TestName = "Empty")]
+		[TestCase(" ", TestName = "WhiteSpace")]
+		[TestCase("\n", TestName = "NewLine")]
+		[TestCase("\0", TestName = "ZeroSymbol")]
+		[TestCase(null, TestName = "null")]
+		[TestCase("++1", TestName = "DoublePlus")]
+		[TestCase("--1", TestName = "DoubleMinus")]
+		[TestCase("+-1", TestName = "PlusMinus")]
+		[TestCase("1..5", TestName = "TwoDotsInNumber")]
+		[TestCase("1,,5", TestName = "TwoCommaInNumber")]
+		[TestCase("6,02E23", TestName = "BigInteger")]
+		public void IsValidNumber_ReturnFalseNotOnNumbers(string checkedString)
+		{
+			var numberValidator = new NumberValidator(17, 2, true);
+			numberValidator.IsValidNumber(checkedString).Should().BeFalse();
+		}
+
+		[Test]
+		public void OnlyPositiveValidator_IsValidNumber_ShouldBeFalse_OnNegativeNumber()
+		{
+			new NumberValidator(17, 2, true).IsValidNumber("-1");
+		}
+
+		[TestCase("-100", TestName = "NegativeInteger")]
+		[TestCase("1000", TestName = "PositiveInteger")]
+		[TestCase("-1.00", TestName = "NegativeNumberWithTwoDigitsAfterDot")]
+		[TestCase("-1,00", TestName = "NegativeNumberWithTwoDigitsAfterComma")]
+		[TestCase("10.00", TestName = "TwoDigitsAfterDot")]
+		[TestCase("10,00", TestName = "TwoDigitsAfterComma")]
+		public void IsValidNumber_ShouldBeFalseOnTooLongPrecisionNumbers(string checkedNumber)
+		{
+			var numberValidator = new NumberValidator(3, 2, false);
+			numberValidator.IsValidNumber(checkedNumber).Should().BeFalse();
+		}
+
+		[TestCase("1.000", TestName = "WithDot")]
+		[TestCase("1,000", TestName = "WithComma")]
+		[TestCase("-1.000", TestName = "NegativeWithDot")]
+		[TestCase("-1,000", TestName = "NegativeWithComma")]
+		public void IsValidNumber_ShouldBeFalseOnTooLongScaleNumbers(string checkedNumber)
+		{
+			var numberValidator = new NumberValidator(10, 2, false);
+			numberValidator.IsValidNumber(checkedNumber).Should().BeFalse();
+		}
+		
+		[TestCase("1.5", TestName = "OneDigitAfterDot")]
+		[TestCase("1.05", TestName = "TwoDigitsAfterDot")]
+		[TestCase("1", TestName = "Integer")]
+		[TestCase("1,5", TestName = "OneDigitAfterComma")]
+		[TestCase("1,05", TestName = "TwoDigitsAfterComma")]
+		[TestCase("+1.5", TestName = "OneDigitAfterDotWithPlus")]
+		[TestCase("+1.05", TestName = "TwoDigitsAfterDotWithPlus")]
+		[TestCase("+1", TestName = "IntegerWithPlus")]
+		[TestCase("+1,5", TestName = "OneDigitAfterCommaWithPlus")]
+		[TestCase("+1,05", TestName = "TwoDigitsAfterCommaWithPlus")]
+		public void OnlyPositiveValidator_ShouldValidate(string checkedNumber)
+		{
+			var numberValidator = new NumberValidator(17, 2, true);
+			numberValidator.IsValidNumber(checkedNumber).Should().BeTrue();
+		}
+		
+		[TestCase("1.05", TestName = "TwoDigitsAfterDot")]
+		[TestCase("100", TestName = "Integer")]
+		[TestCase("+100", TestName = "IntegerWithPlus")]
+		[TestCase("+10,0", TestName = "OneDigitAfterComma_WithPlus")]
+		[TestCase("+10.0", TestName = "OneDigitAfterDot_WithPlus")]
+		[TestCase("1,05", TestName = "TwoDigitsAfterComma")]
+		[TestCase("-1.5", TestName = "NegativeWithOneDigitAfterDot")]
+		[TestCase("-10", TestName = "NegativeInteger")]
+		public void NotOnlyPositiveValidator_ShouldValidate(string checkedNumber)
+		{
+			var numberValidator = new NumberValidator(3, 2, false);
+			numberValidator.IsValidNumber(checkedNumber).Should().BeTrue();
 		}
 	}
 
@@ -45,7 +120,7 @@ namespace HomeExercises
 			if (precision <= 0)
 				throw new ArgumentException("precision must be a positive number");
 			if (scale < 0 || scale >= precision)
-				throw new ArgumentException("precision must be a non-negative number less or equal than precision");
+				throw new ArgumentException("scale must be a non-negative number less than precision");
 			numberRegex = new Regex(@"^([+-]?)(\d+)([.,](\d+))?$", RegexOptions.IgnoreCase);
 		}
 
