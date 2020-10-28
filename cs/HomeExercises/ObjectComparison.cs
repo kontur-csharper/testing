@@ -1,10 +1,13 @@
-﻿using FluentAssertions;
+﻿using System.Linq;
+using FluentAssertions;
 using NUnit.Framework;
 
 namespace HomeExercises
 {
 	public class ObjectComparison
 	{
+		private static readonly string[] excludedMembers = {nameof(Person.Id)};
+
 		[Test]
 		[Description("Проверка текущего царя")]
 		[Category("ToRefactor")]
@@ -15,16 +18,19 @@ namespace HomeExercises
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
+			actualTsar.Should().BeEquivalentTo(expectedTsar, options => options
+				.IncludingNestedObjects()
+				.Excluding(mi => excludedMembers.Contains(mi.SelectedMemberInfo.Name)));
+			//Селектор свойства не применяется к NestedObjects, поэтому проверяем по имени
 
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			/*
+			 * В отличие от решения ниже, при внесении изменений в класс Person изменения потребуются только в случае
+			 * добавления новых членов класса, которые нужно будет обрабатывать как-то нестандартно (что маловероятно)
+			 * Плюсом, в случае падения теста будет нормальный отчет, что именно пошло не так,
+			 * а код ниже просто напишет "expected true, but was false", и придется искать причину через дебаггер,
+			 * либо надо всё подряд логгировать в консоль,
+			 * либо городить Assert.AreEqual(...) на каждый член класса, который нужно проверить
+			 */
 		}
 
 		[Test]
