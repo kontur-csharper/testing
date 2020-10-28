@@ -5,26 +5,21 @@ namespace HomeExercises
 {
 	public class ObjectComparison
 	{
+		/* Такое решение лучше предложенной альтернативы так-как:
+		 1. Тест покроет все поля, в том числе те, которые могут быть добавлены в будущем. Следовательно при добавлении полей не придётся редактировать тест
+		 2. Результаты теста выводятся в понятном формате
+		 3. При ошибке в проверке предка можно сразу узнать глубину, на которой она произошла
+		 4. Тест избегает StackOverflowException при проверке предков*/
 		[Test]
-		[Description("Проверка текущего царя")]
-		[Category("ToRefactor")]
+		[Description("Проверка текущего царя (максимальная проверяемая глубина предков - 10)")]
 		public void CheckCurrentTsar()
 		{
 			var actualTsar = TsarRegistry.GetCurrentTsar();
-
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
-
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			actualTsar.Should().BeEquivalentTo(expectedTsar, opts =>
+				opts.Excluding(x => x.SelectedMemberInfo.Name == nameof(actualTsar.Id))); //Исключаем id из проверки из-за особенностей его присвоения
 		}
 
 		[Test]
@@ -36,6 +31,12 @@ namespace HomeExercises
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
 			// Какие недостатки у такого подхода? 
+			// 1. Если тест упадёт, то придётся его дебажить, чтобы понять на каком конкретно этапе он упал.
+			/* 2. Метод сравнения находится вне объекта, в случае изменения
+			      (предположим что тесты и класс находятся в разных файлах) тест перестанет быть достоверным */
+			// 3. Рекурсия в методе сравнения. Может возникнуть StackOverflowException
+			// 4. Плохая читаемость результатов теста
+			// 5. При добавлении полей придётся редактировать метод сравнения
 			Assert.True(AreEqual(actualTsar, expectedTsar));
 		}
 
