@@ -15,16 +15,10 @@ namespace HomeExercises
 			var expectedTsar = new Person("Ivan IV The Terrible", 54, 170, 70,
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
-			// Перепишите код на использование Fluent Assertions.
-			Assert.AreEqual(actualTsar.Name, expectedTsar.Name);
-			Assert.AreEqual(actualTsar.Age, expectedTsar.Age);
-			Assert.AreEqual(actualTsar.Height, expectedTsar.Height);
-			Assert.AreEqual(actualTsar.Weight, expectedTsar.Weight);
-
-			Assert.AreEqual(expectedTsar.Parent!.Name, actualTsar.Parent!.Name);
-			Assert.AreEqual(expectedTsar.Parent.Age, actualTsar.Parent.Age);
-			Assert.AreEqual(expectedTsar.Parent.Height, actualTsar.Parent.Height);
-			Assert.AreEqual(expectedTsar.Parent.Parent, actualTsar.Parent.Parent);
+			actualTsar.Should().BeEquivalentTo(expectedTsar, options =>
+				options.Excluding(info =>
+					info.SelectedMemberInfo.DeclaringType == typeof(Person) &&
+					info.SelectedMemberInfo.Name == "Id"));
 		}
 
 		[Test]
@@ -36,6 +30,30 @@ namespace HomeExercises
 				new Person("Vasili III of Russia", 28, 170, 60, null));
 
 			// Какие недостатки у такого подхода? 
+			/* 1) Этот вариант менее расширяем чем решение с использованием
+			 *    Fluent Assertions (после добавления новых свойств в класс Person нам необходимо
+			 * 	  влезать в метод AreEqual и добавлять туда новые сравнения).
+			 *    Также у нас добавляется дополнительное ограничение на сравниваемые в AreEqual свойcтва/поля
+			 *    класса Person: если мы хотим сравнивать эти поля по значению, то их тип должен переопределять
+			 *    должным образом метод Equal или оператор сравнения. В то время как BeEquivalentTo сравнивает
+			 *    графы объектов (object graph).
+			 * 
+			 * 2) Это труднее читать: мы используем метод Assert.True, в качестве параметра
+			 *    которого у нас результат работы функции AreEqual (имя которой совпадает с
+			 *    Assert.AreEqual), и нам ещё нужно залезать в код этого метода,
+			 *    чтобы понять что там происходит, сверху добавляется рекурсивность метода и
+			 *    значит нам ещё нужно искать где там у него условие выхода из рекурсии.
+			 *    Из-за рекурсивности ещё вынужденно поставлен nullable-reference тип в качестве параметра,
+			 *    так как выход из рекурсии осуществляется когда передается свойтсво Parent равное null.
+			 *    Этот код выглядит излишне сложным.
+			 *
+			 *  Решение с использование FluentAssertions имеет лучшую читаемость и расширяемость.
+			 *  При добавлении новых свойств/полей в класс Person потенциально код теста не нужно менять,
+			 *  так как делаться это будет только если новые свойства/поля не должны сравниваться.
+			 *  Но у решения с использованием IMemberInfo есть недостаток - возможны проблемы с тестом после
+			 *  рефакторинга. Если мы переименуем исключаемое свойство, то нам нужно лезть в тест и вручную
+			 *  изменять имя в делегате, передаваемому Excluding в качестве параметра.
+			 */
 			Assert.True(AreEqual(actualTsar, expectedTsar));
 		}
 
