@@ -7,26 +7,86 @@ namespace HomeExercises
 {
 	public class NumberValidatorTests
 	{
-		[Test]
-		public void Test()
-		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+		private NumberValidator defaultValidator = new NumberValidator(4, 2);
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+		[Test]
+		public void NumberValidator_ThrowsException_WithNegativeScale()
+		{
+			Action getNewValidator = () => new NumberValidator(-1, 2);
+			getNewValidator.Should().Throw<ArgumentException>("with negative scale");
+		}
+
+		[Test]
+		public void NumberValidator_ThrowsException_WhenScaleIsLessThanPrecision()
+		{
+			Action getNewValidator = () => new NumberValidator(1, 2);
+			getNewValidator.Should().Throw<ArgumentException>("with precision that is bigger than scale");
+		}
+
+		[Test]
+		public void NumberValidator_Pass_DefaultNumber()
+		{
+			ValidatorShouldPass(4, 2, false, "1234");
+		}
+
+		[Test]
+		public void NumberValidator_Pass_NumbersWithSeparators()
+		{
+			ValidatorShouldPass(4, 2, false, "12.34");
+			ValidatorShouldPass(4, 2, false, "12,34");
+		}
+
+		[Test]
+		public void NumberValidator_Pass_PositiveNumberWithPlus()
+		{
+			ValidatorShouldPass(4, 2, false, "+5");
+		}
+
+		[Test]
+		public void NumberValidator_Pass_NegativeNumbers()
+		{
+			ValidatorShouldPass(4, 2, false, "-5");
+		}
+
+		[Test]
+		public void NumberValidator_DoesntPass_LongNumbers()
+		{
+			ValidatorShouldNotPass(4, 2, false, "12345");
+			ValidatorShouldNotPass(4, 2, false, "123.45");
+		}
+
+		[Test]
+		public void NumberValidator_DoesntPass_NumbersWithBigPrecision()
+		{
+			ValidatorShouldNotPass(4, 3, false, "123.4567");
+		}
+
+		[Test]
+		public void NumberValidator_DoesntPass_NotNumber()
+		{
+			ValidatorShouldNotPass(4, 2, false, "abc.d");
+		}
+
+		[Test]
+		public void OnlyPositiveNumberValidator_DoesntPass_NegativeNumbers()
+		{
+			ValidatorShouldNotPass(4, 2, true, "-5");
+		}
+
+		private void ValidatorShouldPass(int scale, int precision, bool onlyPositive, string numberToCheck)
+		{
+			new NumberValidator(scale, precision, onlyPositive)
+				.IsValidNumber(numberToCheck).Should()
+				.BeTrue($"because {(onlyPositive ? "only positive" : "")}validator with " +
+				        $"scale: {scale}, precision: {precision} should pass number: {numberToCheck}");
+		}
+
+		private void ValidatorShouldNotPass(int scale, int precision, bool onlyPositive, string numberToCheck)
+		{
+			new NumberValidator(scale, precision, onlyPositive)
+				.IsValidNumber(numberToCheck).Should()
+				.BeFalse($"because {(onlyPositive ? "only positive" : "")} validator with " +
+				        $"scale: {scale}, precision: {precision} should NOT pass number: {numberToCheck}");
 		}
 	}
 
@@ -34,18 +94,18 @@ namespace HomeExercises
 	{
 		private readonly Regex numberRegex;
 		private readonly bool onlyPositive;
-		private readonly int precision;
 		private readonly int scale;
+		private readonly int precision;
 
-		public NumberValidator(int precision, int scale = 0, bool onlyPositive = false)
+		public NumberValidator(int scale, int precision = 0, bool onlyPositive = false)
 		{
-			this.precision = precision;
 			this.scale = scale;
+			this.precision = precision;
 			this.onlyPositive = onlyPositive;
-			if (precision <= 0)
+			if (scale <= 0)
 				throw new ArgumentException("precision must be a positive number");
-			if (scale < 0 || scale >= precision)
-				throw new ArgumentException("precision must be a non-negative number less or equal than precision");
+			if (precision < 0 || precision >= scale)
+				throw new ArgumentException("precision must be a non-negative number less or equal than scale");
 			numberRegex = new Regex(@"^([+-]?)(\d+)([.,](\d+))?$", RegexOptions.IgnoreCase);
 		}
 
@@ -69,7 +129,7 @@ namespace HomeExercises
 			// Дробная часть
 			var fracPart = match.Groups[4].Value.Length;
 
-			if (intPart + fracPart > precision || fracPart > scale)
+			if (intPart + fracPart > scale || fracPart > precision)
 				return false;
 
 			if (onlyPositive && match.Groups[1].Value == "-")
