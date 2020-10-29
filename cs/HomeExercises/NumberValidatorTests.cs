@@ -7,26 +7,137 @@ namespace HomeExercises
 {
 	public class NumberValidatorTests
 	{
-		[Test]
-		public void Test()
+		[TestCase(-1, 2, TestName = "Constructor_OnNegativePrecision_ShouldThrow")]
+		[TestCase(0, 2, TestName = "Constructor_OnZeroPrecision_ShouldThrow")]
+		[TestCase(2, -1, TestName = "Constructor_OnNegativeScale_ShouldThrow")]
+		[TestCase(2, 3, TestName = "Constructor_OnPrecisionLessThanScale_ShouldThrow")]
+		[TestCase(2, 2, TestName = "Constructor_OnPrecisionEqualsScale_ShouldThrow")]
+		public void Constructor_ShouldThrow(int precision, int scale, bool onlyPositive = false)
 		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+			((Action) (() => new NumberValidator(precision, scale, onlyPositive))).Should().Throw<ArgumentException>();
+		}
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+		[TestCase(1, 0, true, TestName = "Constructor_OnZeroScale_ShouldNotThrow")]
+		[TestCase(2, 1, true, TestName = "Constructor_OnPrecisionMoreThanScale_ShouldNotThrow")]
+		[TestCase(2, 1, false, TestName = "Constructor_OnFalseOnlyPositive_ShouldNotThrow")]
+		public void Constructor_ShouldNotThrow(int precision, int scale, bool onlyPositive)
+		{
+			((Action) (() => new NumberValidator(precision, scale, onlyPositive))).Should()
+				.NotThrow<ArgumentException>();
+		}
+
+		[TestCase(true), TestCase(false)]
+		public void IsValidNumber_OnNotNegativeIntegers_ShouldBeTrue(bool onlyPositive)
+		{
+			var validator = new NumberValidator(7, 5, onlyPositive);
+			validator.IsValidNumber("0").Should().BeTrue();
+			validator.IsValidNumber("000").Should().BeTrue();
+			validator.IsValidNumber("1234567").Should().BeTrue();
+		}
+
+		[TestCase(true), TestCase(false)]
+		public void IsValidNumber_OnNotNegativeIntegersWithSign_ShouldBeTrue(bool onlyPositive)
+		{
+			var validator = new NumberValidator(7, 5, onlyPositive);
+			validator.IsValidNumber("+0").Should().BeTrue();
+			validator.IsValidNumber("+000").Should().BeTrue();
+			validator.IsValidNumber("+123456").Should().BeTrue();
+		}
+
+		[Test]
+		public void IsValidNumber_OnNegativeIntegers_ShouldBeTrue()
+		{
+			var validator = new NumberValidator(7, 5, false);
+			validator.IsValidNumber("-1").Should().BeTrue();
+			validator.IsValidNumber("-123456").Should().BeTrue();
+		}
+
+		[Test]
+		public void IsValidNumber_OnUnexpectedNegativeIntegers_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber("-1").Should().BeFalse();
+			validator.IsValidNumber("-123456").Should().BeFalse();
+		}
+
+		[Test]
+		public void IsValidNumber_OnTooLargeIntegers_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber("12345678").Should().BeFalse();
+
+			validator = new NumberValidator(7, 5, false);
+			validator.IsValidNumber("-1234567").Should().BeFalse();
+		}
+
+		[TestCase(true), TestCase(false)]
+		public void IsValidNumber_OnNotNegativeFloats_ShouldBeTrue(bool onlyPositive)
+		{
+			var validator = new NumberValidator(7, 5, onlyPositive);
+			validator.IsValidNumber("0.0").Should().BeTrue();
+			validator.IsValidNumber("00.000").Should().BeTrue();
+			validator.IsValidNumber("023.0567").Should().BeTrue();
+		}
+
+		[TestCase(true), TestCase(false)]
+		public void IsValidNumber_OnNotNegativeFloatsWithSign_ShouldBeTrue(bool onlyPositive)
+		{
+			var validator = new NumberValidator(7, 5, onlyPositive);
+			validator.IsValidNumber("+0.0").Should().BeTrue();
+			validator.IsValidNumber("+00.000").Should().BeTrue();
+			validator.IsValidNumber("+023.056").Should().BeTrue();
+		}
+
+		[Test]
+		public void IsValidNumber_OnUnexpectedFloats_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber("-0.0").Should().BeFalse();
+			validator.IsValidNumber("-00.000").Should().BeFalse();
+			validator.IsValidNumber("-023.056").Should().BeFalse();
+		}
+
+		[Test]
+		public void IsValidNumber_OnTooLargeFloats_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber("123.45678").Should().BeFalse();
+			validator.IsValidNumber("1.123456").Should().BeFalse();
+
+			validator = new NumberValidator(7, 5, false);
+			validator.IsValidNumber("-123.4567").Should().BeFalse();
+			validator.IsValidNumber("-1.123456").Should().BeFalse();
+		}
+
+		[Test]
+		public void IsValidNumber_OnComaSeparatedFloats_ShouldBeTrue()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber("0,0").Should().BeTrue();
+			validator.IsValidNumber("00,000").Should().BeTrue();
+			validator.IsValidNumber("023,0567").Should().BeTrue();
+		}
+
+		[Test]
+		public void IsValidNumber_OnNotNullOrEmptyString_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber(null).Should().BeFalse();
+			validator.IsValidNumber("").Should().BeFalse();
+		}
+
+		[Test]
+		public void IsValidNumber_OnNotNumbers_ShouldBeFalse()
+		{
+			var validator = new NumberValidator(7, 5, true);
+			validator.IsValidNumber(".0").Should().BeFalse();
+			validator.IsValidNumber("0.").Should().BeFalse();
+			validator.IsValidNumber(".").Should().BeFalse();
+			validator.IsValidNumber(",").Should().BeFalse();
+
+			validator.IsValidNumber("abc").Should().BeFalse();
+			validator.IsValidNumber("abc.def").Should().BeFalse();
+			validator.IsValidNumber("What's up?").Should().BeFalse();
 		}
 	}
 
