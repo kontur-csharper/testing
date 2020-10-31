@@ -7,26 +7,87 @@ namespace HomeExercises
 {
 	public class NumberValidatorTests
 	{
-		[Test]
-		public void Test()
+		[TestCase(-1, 2, true)]
+		[TestCase(-1, 2, false)]
+		[TestCase(3, -2, true)]
+		[TestCase(3, -2, false)]
+		[TestCase(1, 2, true)]
+		[TestCase(1, 2, false)]
+		[TestCase(0, 0, true)]
+		[TestCase(0, 0, false)]
+		public void NumberValidator_ThrowsException(int precision, int scale, bool onlyPositive)
 		{
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, true));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
-			Assert.Throws<ArgumentException>(() => new NumberValidator(-1, 2, false));
-			Assert.DoesNotThrow(() => new NumberValidator(1, 0, true));
+			Action create = () => new NumberValidator(precision, scale, onlyPositive);
+			create.Should().Throw<ArgumentException>();
+		}
 
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("00.00"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-0.00"));
-			Assert.IsTrue(new NumberValidator(17, 2, true).IsValidNumber("0.0"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+0.00"));
-			Assert.IsTrue(new NumberValidator(4, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("+1.23"));
-			Assert.IsFalse(new NumberValidator(17, 2, true).IsValidNumber("0.000"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("-1.23"));
-			Assert.IsFalse(new NumberValidator(3, 2, true).IsValidNumber("a.sd"));
+		[TestCase(1, 0, true)]
+		[TestCase(1, 0, false)]
+		[TestCase(4, 2, true)]
+		[TestCase(4, 2, false)]
+		public void NumberValidator_DoesNotThrowException(int precision, int scale, bool onlyPositive)
+		{
+			Action create = () => new NumberValidator(precision, scale, onlyPositive);
+			create.Should().NotThrow<ArgumentException>();
+		}
+
+		[TestCase(17, 2, true, "0.0")]
+		[TestCase(17, 2, false, "-0.0")]
+		[TestCase(17, 0, true, "0")]
+		[TestCase(17, 2, true, "0")]
+		[TestCase(4, 2, false, "-0.00")]
+		[TestCase(3, 2, true, "0,00")]
+		public void IsValidNumber_ReturnsTrue_OnValidInput(int precision, int scale, bool onlyPositive, string number)
+		{
+			new NumberValidator(precision, scale, onlyPositive).IsValidNumber(number).Should().BeTrue();
+		}
+
+		[TestCase(17, 2, true, "0.")]
+		[TestCase(17, 2, true, ".0")]
+		[TestCase(17, 2, true, "0   ")]
+		[TestCase(17, 2, true, "   0")]
+		[TestCase(17, 2, true, null)]
+		[TestCase(17, 2, true, "")]
+		[TestCase(17, 2, true, " ")]
+		[TestCase(3, 2, true, "12.12")]
+		[TestCase(3, 2, false, "-0.00")]
+		[TestCase(3, 2, true, "+0.00")]
+		[TestCase(3, 2, true, "+-0.00")]
+		[TestCase(3, 2, true, "++0.00")]
+		[TestCase(3, 2, true, "--0.00")]
+		[TestCase(10, 5, true, "0.0.0")]
+		[TestCase(3, 2, true, "0012")]
+		[TestCase(17, 2, true, "0.000")]
+		[TestCase(3, 2, true, "a.sd")]
+
+		public void IsValidNumber_ReturnsFalse_OnValidInput(int precision, int scale, bool onlyPositive, string number)
+		{
+			new NumberValidator(precision, scale, onlyPositive).IsValidNumber(number).Should().BeFalse();
+		}
+
+		[TestCase("0.00")]
+		[TestCase("0.000")]
+		public void IsValidNumber_ReturnsSameResult_OnSecondCall(string number)
+		{
+			var numberValidator = new NumberValidator(17, 2, true);
+			var result1 = numberValidator.IsValidNumber(number);
+			var result2 = numberValidator.IsValidNumber(number);
+			Assert.AreEqual(result1, result2);
+		}
+
+		[Test]
+		public void IsValidNumber_SupportsAllDigits()
+		{
+			var allCasesAreValid = true;
+			var numberValidator = new NumberValidator(17, 5, true);
+			for (var i = 0; i < 10; i++)
+				if (!numberValidator.IsValidNumber($"{i}{i}.{9 - i}{9 - i}"))
+				{
+					allCasesAreValid = false;
+					break;
+				}
+
+			allCasesAreValid.Should().BeTrue();
 		}
 	}
 
